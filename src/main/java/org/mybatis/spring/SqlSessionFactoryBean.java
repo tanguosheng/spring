@@ -487,6 +487,7 @@ public class SqlSessionFactoryBean
     state((configuration == null && configLocation == null) || !(configuration != null && configLocation != null),
         "Property 'configuration' and 'configLocation' can not specified with together");
 
+    // 初始化 SqlSessionFactoryBean 时，调用到此方法，创建 SqlSessionFactory
     this.sqlSessionFactory = buildSqlSessionFactory();
   }
 
@@ -503,6 +504,7 @@ public class SqlSessionFactoryBean
    */
   protected SqlSessionFactory buildSqlSessionFactory() throws Exception {
 
+    // 还是和普通使用Mybatis一样，构建 Configuration 对象
     final Configuration targetConfiguration;
 
     XMLConfigBuilder xmlConfigBuilder = null;
@@ -523,6 +525,7 @@ public class SqlSessionFactoryBean
       Optional.ofNullable(this.configurationProperties).ifPresent(targetConfiguration::setVariables);
     }
 
+    // 如果 objectFactory != null 则调用 targetConfiguration 的 setObjectFactory 方法
     Optional.ofNullable(this.objectFactory).ifPresent(targetConfiguration::setObjectFactory);
     Optional.ofNullable(this.objectWrapperFactory).ifPresent(targetConfiguration::setObjectWrapperFactory);
     Optional.ofNullable(this.vfs).ifPresent(targetConfiguration::setVfsImpl);
@@ -592,10 +595,13 @@ public class SqlSessionFactoryBean
       }
     }
 
+    // 设置 environment
+    // 使用 SpringManagedTransactionFactory 事务工厂
     targetConfiguration.setEnvironment(new Environment(this.environment,
         this.transactionFactory == null ? new SpringManagedTransactionFactory() : this.transactionFactory,
         this.dataSource));
 
+    // 解析 Mybatis 全局配置文件
     if (this.mapperLocations != null) {
       if (this.mapperLocations.length == 0) {
         LOGGER.warn(() -> "Property 'mapperLocations' was specified but matching resources are not found.");
@@ -605,9 +611,12 @@ public class SqlSessionFactoryBean
             continue;
           }
           try {
+            // 调用 Mybatis 的 XMLMapperBuilder 解析 mapper 映射文件
             XMLMapperBuilder xmlMapperBuilder = new XMLMapperBuilder(mapperLocation.getInputStream(),
                 targetConfiguration, mapperLocation.toString(), targetConfiguration.getSqlFragments());
+
             xmlMapperBuilder.parse();
+
           } catch (Exception e) {
             throw new NestedIOException("Failed to parse mapping resource: '" + mapperLocation + "'", e);
           } finally {
@@ -620,6 +629,7 @@ public class SqlSessionFactoryBean
       LOGGER.debug(() -> "Property 'mapperLocations' was not specified.");
     }
 
+    // 返回 DefaultSqlSessionFactory
     return this.sqlSessionFactoryBuilder.build(targetConfiguration);
   }
 

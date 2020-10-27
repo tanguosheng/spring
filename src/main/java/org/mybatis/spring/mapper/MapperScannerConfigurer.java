@@ -353,6 +353,8 @@ public class MapperScannerConfigurer
       scanner.setLazyInitialization(Boolean.valueOf(lazyInitialization));
     }
     scanner.registerFilters();
+
+    // 调用 scanner父类 的 scan，父类scan会调用子类重写的 doScan
     scanner.scan(
         StringUtils.tokenizeToStringArray(this.basePackage, ConfigurableApplicationContext.CONFIG_LOCATION_DELIMITERS));
   }
@@ -362,6 +364,10 @@ public class MapperScannerConfigurer
    * PropertyResourceConfigurers will not have been loaded and any property substitution of this class' properties will
    * fail. To avoid this, find any PropertyResourceConfigurers defined in the context and run them on this class' bean
    * definition. Then update the values.
+   *
+   * BeanDefinitionRegistries 在应用程序启动之前的 BeanFactoryPostProcessors 之前被调用。
+   * 这意味着 PropertyResourceConfigurers 将不会被加载，并且此类属性的任何属性替换都将失败。
+   * 为了避免这种情况，请找到上下文中定义的所有 PropertyResourceConfigurers 并在此类的 bean definition 上运行它们。然后更新值。
    */
   private void processPropertyPlaceHolders() {
     Map<String, PropertyResourceConfigurer> prcs = applicationContext.getBeansOfType(PropertyResourceConfigurer.class,

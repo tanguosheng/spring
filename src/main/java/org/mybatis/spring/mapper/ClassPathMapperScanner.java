@@ -45,7 +45,7 @@ import java.util.Set;
  *
  * @author Hunter Presnall
  * @author Eduardo Macarron
- * 
+ *
  * @see MapperFactoryBean
  * @since 1.2.0
  */
@@ -178,12 +178,18 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
    */
   @Override
   public Set<BeanDefinitionHolder> doScan(String... basePackages) {
+
+    // 调用父类 scan 方法扫描，
+    // 父类实现会调到 本类的 isCandidateComponent 方法重载来确认扫描到的类是否是满足当前要求的，参见本类 isCandidateComponent 方法
     Set<BeanDefinitionHolder> beanDefinitions = super.doScan(basePackages);
 
+    // 扫描到了mapper接口 这里就不会是空
     if (beanDefinitions.isEmpty()) {
       LOGGER.warn(() -> "No MyBatis mapper was found in '" + Arrays.toString(basePackages)
           + "' package. Please check your configuration.");
     } else {
+
+      // 这里做了很重要的功能！！！！！
       processBeanDefinitions(beanDefinitions);
     }
 
@@ -192,6 +198,9 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
 
   private void processBeanDefinitions(Set<BeanDefinitionHolder> beanDefinitions) {
     GenericBeanDefinition definition;
+
+    // 循环扫描到的 mapper 接口的 BeanDefinition，众所周知，接口是不能被实例化的
+    // 这里修改了bean定义，为mapper接口添加了 BeanClass = MapperFactoryBean，让它拥有了生成bean的功能
     for (BeanDefinitionHolder holder : beanDefinitions) {
       definition = (GenericBeanDefinition) holder.getBeanDefinition();
       String beanClassName = definition.getBeanClassName();
@@ -200,7 +209,11 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
 
       // the mapper interface is the original class of the bean
       // but, the actual class of the bean is MapperFactoryBean
+      // mapper接口是Bean的原始类, 但是Bean的实际类是MapperFactoryBean
+      // 设置ConstructorArgumentValues，通过构造器初始化对象，将 mapper接口的beanClassName设置进去
       definition.getConstructorArgumentValues().addGenericArgumentValue(beanClassName); // issue #59
+
+      // 偷天换日，将 definition 的 BeanClass 设置成 MapperFactoryBean.class
       definition.setBeanClass(this.mapperFactoryBeanClass);
 
       definition.getPropertyValues().add("addToConfig", this.addToConfig);
@@ -234,6 +247,8 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
 
       if (!explicitFactoryUsed) {
         LOGGER.debug(() -> "Enabling autowire by type for MapperFactoryBean with name '" + holder.getBeanName() + "'.");
+
+        // 为 MapperFactoryBean 的属性设置自动装配，这样 SqlSessionFactory 就可以自动注入进来
         definition.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE);
       }
       definition.setLazyInit(lazyInitialization);
@@ -245,6 +260,8 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
    */
   @Override
   protected boolean isCandidateComponent(AnnotatedBeanDefinition beanDefinition) {
+
+    // 重写了spring父类自带的实现，doScan 时只有是接口时才满足。 spring 默认实现接口是不满足的
     return beanDefinition.getMetadata().isInterface() && beanDefinition.getMetadata().isIndependent();
   }
 

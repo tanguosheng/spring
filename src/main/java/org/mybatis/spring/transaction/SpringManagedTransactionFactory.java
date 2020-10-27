@@ -36,6 +36,8 @@ public class SpringManagedTransactionFactory implements TransactionFactory {
    */
   @Override
   public Transaction newTransaction(DataSource dataSource, TransactionIsolationLevel level, boolean autoCommit) {
+    // 使用 SpringManagedTransaction 管理事务
+    // 参见 SpringManagedTransaction.openConnection()
     return new SpringManagedTransaction(dataSource);
   }
 
